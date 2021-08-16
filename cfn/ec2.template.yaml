@@ -1,0 +1,52 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description:
+  ec2 instance
+
+Parameters:
+  ImageID:
+    Type: String
+    Default: "ami-0e787554e61105680"
+  KeyPairName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Default: "aws-infra-keypair"
+  InstanceType:
+    Type: String
+    Default: "t2.micro"
+  SecurityGroupIds:
+    Type: List<AWS::EC2::SecurityGroup::Id>
+  InstanceSubnet:
+    Type: AWS::EC2::Subnet::Id
+  IamInstanceProfile:
+    Type: String
+    Default: aws-infra-ec2-base-role-Ec2InstanceBaseProfile-1X6ONF2G7FUDV
+  Date:
+    Type: String
+    Description: YYYYMMDDhhmm
+
+Resources:
+  Ec2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      IamInstanceProfile: !Ref IamInstanceProfile
+      ImageId: !Ref ImageID
+      KeyName: !Ref KeyPairName
+      InstanceType: !Ref InstanceType
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: True
+          DeviceIndex: "0"
+          SubnetId: !Ref InstanceSubnet
+          GroupSet: !Ref SecurityGroupIds
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeType: gp3
+            VolumeSize: 80
+      Tags:
+        - { Key: Name, Value: !Sub "aws-infra-ec2-${Date}" }
+        - { Key: Owner, Value: !Sub "aws-infra" }
+
+Outputs:
+  InstanceId:
+    Value: !Ref Ec2Instance
+  PrivateIpAddress:
+    Value: !GetAtt Ec2Instance.PrivateIp

@@ -44,3 +44,8 @@ Resources:
       ToPort: -1
       SourceSecurityGroupId: !GetAtt CommonSecurityGroup.GroupId
 
+Outputs:
+  SecurityGroupId:
+    Value: !Ref CommonSecurityGroup
+    Export:
+      Name: common-sg
