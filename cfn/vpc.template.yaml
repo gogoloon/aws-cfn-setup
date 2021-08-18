@@ -166,6 +166,20 @@ Resources:
       DestinationCidrBlock: "0.0.0.0/0"
       GatewayId: !Ref InternetGateway
 
+  PublicRouteVPN:
+    Type: "AWS::EC2::Route"
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: "192.168.100.0/24"
+      InstanceId: i-047e225c3d4aba772
+
+  PrivateRouteVPN:
+    Type: "AWS::EC2::Route"
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      DestinationCidrBlock: "192.168.100.0/24"
+      InstanceId: i-047e225c3d4aba772
+
 
   # Associate
   # PublicRouteTable Associate Subnet

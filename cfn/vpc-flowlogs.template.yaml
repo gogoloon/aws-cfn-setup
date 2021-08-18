@@ -1,0 +1,40 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description:
+  VPC Flow Logs
+
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: "aws-infra"
+
+  VpcId:
+    Type: String
+    Default: "vpc-0f37be77297f28c77"
+
+  VpcFlowLogsTrafficType:
+    Type: String
+    Default: ALL
+    AllowedValues: [ ALL, ACCEPT, REJECT ]
+
+Resources:
+  VPCFlowLogsS3Bucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      BucketName: !Sub "${ProjectName}-vpcflowlogs"
+      LifecycleConfiguration:
+        Rules:
+          - Id: !Sub "${ProjectName}-vpcflowlogs-lifecycle-rule"
+            Status: Enabled
+            Prefix: VPCFlowLogs
+            ExpirationInDays: 7
+
+  VPCFlowLogs:
+    Type: "AWS::EC2::FlowLog"
+    DependsOn: VPCFlowLogsS3Bucket
+    Properties:
+      LogDestination: !Sub "arn:aws:s3:::${VPCFlowLogsS3Bucket}"
+      LogDestinationType: s3
+      ResourceId: !Ref VpcId
+      ResourceType: "VPC"
+      TrafficType: !Ref VpcFlowLogsTrafficType
