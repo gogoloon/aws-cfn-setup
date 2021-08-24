@@ -57,6 +57,37 @@ Parameters:
     Type: String
     Default: "10.1.200.0/24"
 
+
+Mappings:
+  AzMap:
+    us-east-1:
+      primary: us-east-1d
+      secondary: us-east-1a
+    us-west-2:
+      primary: us-west-2a
+      secondary: us-west-2b
+    us-west-1:
+      primary: us-west-1a
+      secondary: us-west-1b
+    eu-west-1:
+      primary: eu-west-1a
+      secondary: eu-west-1b
+    ap-southeast-1:
+      primary: ap-southeast-1a
+      secondary: ap-southeast-1b
+    ap-northeast-1:
+      primary: ap-northeast-1a
+      secondary: ap-northeast-1c
+    ap-southeast-2:
+      primary: ap-southeast-2a
+      secondary: ap-southeast-2b
+    ap-northeast-3:
+      primary: ap-northeast-3a
+      secondary: ap-northeast-3c
+    sa-east-1:
+      primary: sa-east-1a
+      secondary: sa-east-1b
+
 Resources:
   # ------------------------------------------------------------#
   #  VPC
@@ -95,7 +126,10 @@ Resources:
   PublicSubnetA:
     Type: "AWS::EC2::Subnet"
     Properties:
-      AvailabilityZone: "ap-northeast-3a"
+      AvailabilityZone: !FindInMap
+        - AzMap
+        - !Ref 'AWS::Region'
+        - primary
       CidrBlock: !Ref PublicSubnetACIDR
       VpcId: !Ref VPC
       MapPublicIpOnLaunch: True
@@ -107,7 +141,10 @@ Resources:
   PublicSubnetC:
     Type: "AWS::EC2::Subnet"
     Properties:
-      AvailabilityZone: "ap-northeast-3c"
+      AvailabilityZone: !FindInMap
+        - AzMap
+        - !Ref 'AWS::Region'
+        - secondary
       CidrBlock: !Ref PublicSubnetCCIDR
       VpcId: !Ref VPC
       MapPublicIpOnLaunch: True
@@ -119,7 +156,10 @@ Resources:
   PrivateSubnetA:
     Type: "AWS::EC2::Subnet"
     Properties:
-      AvailabilityZone: "ap-northeast-3a"
+      AvailabilityZone: !FindInMap
+        - AzMap
+        - !Ref 'AWS::Region'
+        - primary
       CidrBlock: !Ref PrivateSubnetACIDR
       VpcId: !Ref VPC
       Tags:
@@ -130,7 +170,10 @@ Resources:
   PrivateSubnetC:
     Type: "AWS::EC2::Subnet"
     Properties:
-      AvailabilityZone: "ap-northeast-3c"
+      AvailabilityZone: !FindInMap
+        - AzMap
+        - !Ref 'AWS::Region'
+        - secondary
       CidrBlock: !Ref PrivateSubnetCCIDR
       VpcId: !Ref VPC
       Tags:
@@ -171,14 +214,14 @@ Resources:
     Properties:
       RouteTableId: !Ref PublicRouteTable
       DestinationCidrBlock: "192.168.100.0/24"
-      InstanceId: i-047e225c3d4aba772
+      InstanceId: i-0aba34c7b4935a843
 
   PrivateRouteVPN:
     Type: "AWS::EC2::Route"
     Properties:
       RouteTableId: !Ref PrivateRouteTable
       DestinationCidrBlock: "192.168.100.0/24"
-      InstanceId: i-047e225c3d4aba772
+      InstanceId: i-0aba34c7b4935a843
 
 
   # Associate

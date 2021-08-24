@@ -1,0 +1,88 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description:
+  elastic search
+
+Parameters:
+  ESDomainName:
+    Description: "Your Elasticsearch Domain Name"
+    Type: String
+    MinLength: 3
+    MaxLength: 28
+    AllowedPattern: "^[a-z0-9+-]*$"
+    Default: "aws-infra-es-domain"
+  MyVpcId:
+    Type: String
+    Default: "vpc-07d3da6a1a6080cae"
+    AllowedValues:
+      - vpc-07d3da6a1a6080cae
+  MyVpcCidrBlock:
+    Type: String
+    Default: "10.1.0.0/16"
+  MyEsSubnetId01:
+    Type: String
+    Default: "subnet-054fd3cf62309a1cd"
+    AllowedValues:
+      - subnet-054fd3cf62309a1cd
+  MyEsSubnetId02:
+    Type: String
+    Default: "subnet-071839dffdcfb3be3"
+    AllowedValues:
+      - subnet-071839dffdcfb3be3
+  InstanceType:
+    Type: String
+    Default: "t3.small.elasticsearch"
+    AllowedValues:
+      - t3.small.elasticsearch
+      - t3.medium.elasticsearch
+      - r5.large.elasticsearch
+
+Resources:
+  # Security Group
+  # For Amazon Elasticsearch Service
+  ElasticsearchSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: elasticsearch-sg
+      VpcId: !Ref MyVpcId
+      Tags:
+        - Key: Name
+          Value: aws-infra-elasticsearch-sg
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '443'
+          ToPort: '443'
+          CidrIp: !Ref MyVpcCidrBlock
+
+  # Elasticsearch on VPC
+  MyElasticsearch:
+    Type: AWS::Elasticsearch::Domain
+    Properties:
+      AccessPolicies:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: '*'
+            Action: 'es:*'
+            Resource: !Sub arn:aws:es:${AWS::Region}:${AWS::AccountId}:domain/${ESDomainName}/*
+      DomainName: !Ref ESDomainName
+      EBSOptions:
+        EBSEnabled: true
+        VolumeSize: 10
+        VolumeType: gp2
+      ElasticsearchClusterConfig:
+        InstanceCount: 2
+        InstanceType: !Ref InstanceType
+        ZoneAwarenessEnabled: true
+      ElasticsearchVersion: 7.4
+      SnapshotOptions:
+        AutomatedSnapshotStartHour: 17
+      VPCOptions:
+        SubnetIds:
+          - !Ref MyEsSubnetId01
+          - !Ref MyEsSubnetId02
+        SecurityGroupIds:
+          - !Ref ElasticsearchSecurityGroup
+    UpdatePolicy:
+      EnableVersionUpgrade: true
+
