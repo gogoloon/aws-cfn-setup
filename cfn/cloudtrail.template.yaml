@@ -2,14 +2,19 @@ AWSTemplateFormatVersion: 2010-09-09
 Description: CloudTrail
 
 Parameters:
-  ProjectName:
+  LogGroupName:
     Type: String
-    Default: "aws-infra"
+    Description: Enter LogGroupName
+    Default: "aws-infra-croudtrail-loggroup"
+  LogStreamName:
+    Type: String
+    Description: Enter LogStreamName
+    Default: "aws-infra-croudtrail-logstream"
 
 Resources:
   CloudTrailLogsBucket:
     Type: AWS::S3::Bucket
-#    DeletionPolicy: Retain
+    #    DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
       BucketName: !Sub ${AWS::Region}-cloudtrail-logs
@@ -58,6 +63,63 @@ Resources:
               StringEquals:
                 s3:x-amz-acl: bucket-owner-full-control
 
+  # Create CWLog group
+  CloudTrailLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Ref LogGroupName
+      RetentionInDays: 3
+
+  # Create CloudWTrailRole for CWLogs and ElasticSearch
+  CloudTrailLogRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - !Sub "cloudtrail.${AWS::URLSuffix}"
+                - !Sub "lambda.${AWS::URLSuffix}"
+            Action:
+              - "sts:AssumeRole"
+      Path: "/"
+      Policies:
+        - PolicyName: aws-infra-policy-cloudtrail-es
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'es:ESHttpPost'
+                Resource: "arn:aws:es:*:*:*"
+              - Effect: Allow
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:DescribeLogStreams"
+                  - "logs:PutLogEvents"
+                  - "ec2:CreateNetworkInterface"
+                  - "ec2:DescribeNetworkInterfaces"
+                  - "ec2:DeleteNetworkInterface"
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - 'lambda:InvokeFunction'
+                Resource: "arn:aws:logs:*:*:*"
+
+#  CloudTrailLogSubscriptionFilter:
+#    Type: AWS::Logs::SubscriptionFilter
+#    Properties:
+#      RoleArn: !GetAtt CloudTrailLogRole.Arn
+#      LogGroupName: !Ref CloudTrailLogGroup
+#      FilterPattern: '[host, ident, authuser, date, request, status, bytes]'
+#      DestinationArn:
+#        Fn::GetAtt:
+#          - "KinesisStream"
+#          - "Arn"
+
   # CloudTrailから配信されるログの暗号化キー
   # https://docs.aws.amazon.com/ja_jp/awscloudtrail/latest/userguide/create-kms-key-policy-for-cloudtrail.html
   KmsKey:
@@ -94,6 +156,8 @@ Resources:
   CloudTrail:
     Type: AWS::CloudTrail::Trail
     Properties:
+      CloudWatchLogsLogGroupArn: !GetAtt CloudTrailLogGroup.Arn
+      CloudWatchLogsRoleArn: !GetAtt CloudTrailLogRole.Arn
       S3BucketName: !Ref CloudTrailLogsBucket
       KMSKeyId: !Ref KmsKey
       TrailName: CloudTrailLog
